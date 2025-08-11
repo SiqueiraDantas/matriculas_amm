@@ -1,11 +1,11 @@
 // Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyAzavu7lRQPAi--SFecOg2FE6f0WlDyTPE",
-  authDomain: "matriculas-madeinsertao.firebaseapp.com",
-  projectId: "matriculas-madeinsertao",
-  storageBucket: "matriculas-madeinsertao.appspot.com",
-  messagingSenderId: "426884127493",
-  appId: "1:426884127493:web:7c83d74f972af209c8b56c"
+    apiKey : "AIzaSyAzavu7lRQPAi--SFecOg2FE6f0WlDyTPE" , 
+  authDomain : "matriculas-madeinsertao.firebaseapp.com" , 
+  projectId : "matrículas-madeinsertao" , 
+  storageBucket : "matriculas-madeinsertao.firebasestorage.app" , 
+  messagingSenderId : "426884127493" , 
+  appId : "1:426884127493:web:7c83d74f972af209c8b56c"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -161,3 +161,4 @@ function validarCPF(cpf) {
   if (resto === 10 || resto === 11) resto = 0;
   return resto === parseInt(cpf.charAt(10));
 }
+
