@@ -1,129 +1,41 @@
-// Firebase config
+// matriculas.js — Firebase v10 (modular via CDN) + Firestore
+// Coloque no HTML: <script type="module" src="matriculas.js"></script>
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================
+   CONFIGURAÇÃO DO FIREBASE
+   ========================= */
 const firebaseConfig = {
-    apiKey : "AIzaSyAzavu7lRQPAi--SFecOg2FE6f0WlDyTPE" , 
-  authDomain : "matriculas-madeinsertao.firebaseapp.com" , 
-  projectId : "matrículas-madeinsertao" , 
-  storageBucket : "matriculas-madeinsertao.firebasestorage.app" , 
-  messagingSenderId : "426884127493" , 
-  appId : "1:426884127493:web:7c83d74f972af209c8b56c"
+  apiKey: "AIzaSyAzavu7lRQPAi--SFecOg2FE6f0WlDyTPE",
+  authDomain: "matriculas-madeinsertao.firebaseapp.com",
+  projectId: "matriculas-madeinsertao",               // sem acento
+  storageBucket: "matriculas-madeinsertao.appspot.com", // appspot.com (correto p/ bucket)
+  messagingSenderId: "426884127493",
+  appId: "1:426884127493:web:7c83d74f972af209c8b56c",
+  measurementId: "G-V2DH0RHXEE"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-const form = document.getElementById('formMatricula');
-const btnEnviar = form.querySelector('button[type="submit"]');
-const notificacao = document.getElementById('notificacao');
-
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  btnEnviar.disabled = true;
-  btnEnviar.textContent = 'Enviando...';
-
-  const formData = new FormData(form);
-
-  const nome = formData.get('nome')?.trim();
-  const cpf = formData.get('cpf')?.replace(/\D/g, '');
-  const idade = formData.get('idade')?.trim();
-  const sexo = formData.get('sexo');
-  const raca = formData.get('raca');
-  const religiao = formData.get('religiao');
-  const escola = formData.get('escola');
-  const rede = formData.get('rede');
-  const bairro = formData.get('bairro');
-  const tipoMatricula = formData.get('tipoMatricula');
-
-  const oficinas = formData.getAll('oficinas[]');
-  const programas = formData.getAll('programas[]');
-
-  const responsavel = {
-    nome: formData.get('responsavel')?.trim(),
-    telefone: formData.get('telefone')?.trim(),
-    email: formData.get('email')?.trim(),
-    integrantes: formData.get('integrantes') || '',
-  };
-
-  // Validação de CPF
-  if (!validarCPF(cpf)) {
-    exibirNotificacao("❗ CPF inválido. Por favor, verifique e tente novamente.", true);
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Matrícula';
+/* =========================
+   UTILITÁRIOS
+   ========================= */
+function exibirNotificacao(mensagem, erro = false) {
+  const notificacao = document.getElementById('notificacao');
+  if (!notificacao) {
+    alert(mensagem);
     return;
   }
-
-  try {
-    const existente = await db.collection("matriculas").where("cpf", "==", cpf).get();
-
-    if (!existente.empty) {
-      exibirNotificacao("❗ Sua matrícula já foi realizada. O CPF informado já está cadastrado.", true);
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Matrícula';
-      return;
-    }
-
-    const anoFixo = 2025;
-    const codigoEscola = gerarCodigoEscola(escola);
-
-    const querySnapshot = await db.collection("matriculas")
-      .where("ano", "==", anoFixo)
-      .where("escola", "==", escola)
-      .get();
-
-    const contador = querySnapshot.size + 1;
-    const sequencial = String(contador).padStart(4, '0');
-    const numeroMatricula = `${anoFixo}-${tipoMatricula}-${codigoEscola}-${sequencial}`;
-
-    await db.collection("matriculas").add({
-      numeroMatricula,
-      ano: anoFixo,
-      nome,
-      cpf,
-      idade,
-      sexo,
-      raca,
-      religiao,
-      escola,
-      bairro,
-      rede,
-      tipoMatricula,
-      oficinas,
-      programas,
-      responsavel,
-      dataEnvio: new Date().toISOString()
-    });
-
-    exibirNotificacao(`${nome}, sua matrícula foi efetuada com sucesso!`);
-    form.reset();
-  } catch (erro) {
-    console.error("Erro ao enviar matrícula:", erro);
-    exibirNotificacao("❌ Erro ao enviar matrícula. Tente novamente mais tarde.", true);
-  }
-
-  btnEnviar.disabled = false;
-  btnEnviar.textContent = 'Enviar Matrícula';
-});
-
-function gerarCodigoEscola(nomeEscola) {
-  const codigos = {
-    "Escola de Ensino Infantil e Fundamental Maria do Carmo": "MC",
-    "Escola de Ensino Médio Alfredo Machado": "AM",
-    "CEI Mãe Toinha": "MT",
-    "CEI Sara Rosita": "SR",
-    "CEI Raio de Luz": "RL",
-    "CEI Pequeno Aprendiz": "PA",
-    "CEI Criança Feliz": "CF",
-    "CEI Luz do Saber": "LS",
-    "CEI Mundo Encantado": "ME",
-    "CEI Sonho de Criança": "SC",
-    "CEI José Edson do Nascimento": "JE",
-    "CEI José Alzir Silva Lima": "JA"
-  };
-
-  return codigos[nomeEscola] || "EMM";
-}
-
-function exibirNotificacao(mensagem, erro = false) {
   notificacao.textContent = mensagem;
   notificacao.style.position = 'fixed';
   notificacao.style.top = '20px';
@@ -147,7 +59,9 @@ function exibirNotificacao(mensagem, erro = false) {
 }
 
 function validarCPF(cpf) {
-  if (!cpf || cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  if (!cpf) return false;
+  cpf = cpf.replace(/\D/g, '');
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
 
   let soma = 0;
   for (let i = 0; i < 9; i++) soma += parseInt(cpf.charAt(i)) * (10 - i);
@@ -162,3 +76,134 @@ function validarCPF(cpf) {
   return resto === parseInt(cpf.charAt(10));
 }
 
+function gerarCodigoEscola(nomeEscola) {
+  const codigos = {
+    "Escola de Ensino Infantil e Fundamental Maria do Carmo": "MC",
+    "Escola de Ensino Médio Alfredo Machado": "AM",
+    "CEI Mãe Toinha": "MT",
+    "CEI Sara Rosita": "SR",
+    "CEI Raio de Luz": "RL",
+    "CEI Pequeno Aprendiz": "PA",
+    "CEI Criança Feliz": "CF",
+    "CEI Luz do Saber": "LS",
+    "CEI Mundo Encantado": "ME",
+    "CEI Sonho de Criança": "SC",
+    "CEI José Edson do Nascimento": "JE",
+    "CEI José Alzir Silva Lima": "JA"
+  };
+  return codigos[nomeEscola] || "EMM";
+}
+
+/* =========================
+   LÓGICA PRINCIPAL
+   ========================= */
+window.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('formMatricula');
+  if (!form) {
+    console.warn("⚠️ Formulário #formMatricula não encontrado no DOM.");
+    return;
+  }
+  const btnEnviar = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Desabilita botão
+    if (btnEnviar) {
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = 'Enviando...';
+    }
+
+    try {
+      const formData = new FormData(form);
+
+      // Campos do aluno
+      const nome  = (formData.get('nome') || '').toString().trim();
+      const cpf   = (formData.get('cpf')  || '').toString().replace(/\D/g, '');
+      const idade = (formData.get('idade') || '').toString().trim(); // se for data, adaptar p/ Date depois
+      const sexo  = (formData.get('sexo') || '').toString();
+      const raca  = (formData.get('raca') || '').toString();
+      const religiao = (formData.get('religiao') || '').toString();
+      const escola   = (formData.get('escola') || '').toString();
+      const rede     = (formData.get('rede')   || '').toString();
+      const bairro   = (formData.get('bairro') || '').toString();
+      const tipoMatricula = (formData.get('tipoMatricula') || '').toString(); // A / B
+
+      // Listas
+      const oficinas  = formData.getAll('oficinas[]').map(v => v.toString());
+      const programas = formData.getAll('programas[]').map(v => v.toString());
+
+      // Responsável
+      const responsavel = {
+        nome: (formData.get('responsavel') || '').toString().trim(),
+        telefone: (formData.get('telefone') || '').toString().trim(),
+        email: (formData.get('email') || '').toString().trim(),
+        integrantes: (formData.get('integrantes') || '').toString()
+      };
+
+      // Validações mínimas
+      if (!nome) throw new Error("Informe o nome do aluno.");
+      if (!validarCPF(cpf)) {
+        exibirNotificacao("❗ CPF inválido. Por favor, verifique e tente novamente.", true);
+        return;
+      }
+      if (!escola) throw new Error("Selecione a escola.");
+      if (!tipoMatricula) throw new Error("Selecione Matrícula (A) ou Rematrícula (B).");
+
+      // Verifica duplicidade por CPF
+      const dupQuery = query(collection(db, "matriculas"), where("cpf", "==", cpf));
+      const dupSnap  = await getDocs(dupQuery);
+      if (!dupSnap.empty) {
+        exibirNotificacao("❗ Sua matrícula já foi realizada. O CPF informado já está cadastrado.", true);
+        return;
+      }
+
+      // Geração de número de matrícula
+      const anoFixo = 2025; // ajuste se quiser dinâmico: new Date().getFullYear()
+      const codigoEscola = gerarCodigoEscola(escola);
+
+      // Conta quantos já existem para a mesma escola/ano para gerar sequencial
+      const seqQuery = query(
+        collection(db, "matriculas"),
+        where("ano", "==", anoFixo),
+        where("escola", "==", escola)
+      );
+      const seqSnap = await getDocs(seqQuery);
+      const contador = seqSnap.size + 1;
+      const sequencial = String(contador).padStart(4, '0'); // XXXX
+
+      const numeroMatricula = `${anoFixo}-${tipoMatricula}-${codigoEscola}-${sequencial}`;
+
+      // Salva no Firestore
+      await addDoc(collection(db, "matriculas"), {
+        numeroMatricula,
+        ano: anoFixo,
+        nome,
+        cpf,
+        idade,
+        sexo,
+        raca,
+        religiao,
+        escola,
+        bairro,
+        rede,
+        tipoMatricula,
+        oficinas,
+        programas,
+        responsavel,
+        dataEnvio: new Date().toISOString()
+      });
+
+      exibirNotificacao(`${nome}, sua matrícula foi efetuada com sucesso!`);
+      form.reset();
+    } catch (err) {
+      console.error("Erro ao enviar matrícula:", err);
+      exibirNotificacao(`❌ Erro ao enviar matrícula. ${err?.message || 'Tente novamente mais tarde.'}`, true);
+    } finally {
+      if (btnEnviar) {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = 'Enviar Matrícula';
+      }
+    }
+  });
+});
